@@ -1,0 +1,276 @@
+// Structure:
+// var soundGroups = {
+//   default: {
+//     "1.wav": { howl: new Howl(), loaded: false },
+//     "2.wav": { howl: new Howl(), loaded: false },
+//   },
+//   battle: {
+//     "battle.wav": { howl: new Howl(), loaded: false },
+//   },
+// };
+var soundGroups = {};
+var DEFAULT_GROUP_NAME = "default";
+
+var loadingTexts = [];
+/**
+ * Dummy macro to render loading text.
+ *
+ * Usage: `<<renderLoadingText "loadingText" "loadedText" "groupName">>`
+ * Note that double quotes are required.
+ * @param {string} loadingText
+ * Text to display when not yet loaded.
+ * @param {string} loadedText
+ * Text to display after loading.
+ * @param {string} [groupName]
+ * Group to check load status of. If not provided, uses the default group.
+ */
+macros.renderLoadingText = {
+  handler: function (place, macroName, params) {
+    loadingTexts.push({
+      loadingText: params[0],
+      loadedText: params[1],
+      groupName: params[2] || DEFAULT_GROUP_NAME,
+    });
+  },
+};
+
+/** Looks for renderLoadingText macro and renders loading text */
+postrender.checkIfLoaded = function (body) {
+  var renderMacroMatches = this.text.match(/<<renderLoadingText.*?>>/g);
+  if (renderMacroMatches !== null) {
+    renderMacroMatches.forEach(function (macroMatch, index) {
+      var text = loadingTexts[loadingTexts.length - index - 1];
+
+      var audioLoadText = document.createElement("div");
+      audioLoadText.setAttribute("id", "audio-load-text-" + text.groupName);
+      audioLoadText.innerText = soundGroups[text.groupName].loaded
+        ? text.loadedText
+        : text.loadingText;
+      body.appendChild(audioLoadText);
+
+      if (!soundGroups[text.groupName].loaded) {
+        var interval = setInterval(function () {
+          if (soundGroups[text.groupName].loaded) {
+            audioLoadText.innerText = text.loadedText;
+            clearInterval(interval);
+          }
+        }, 500);
+      }
+    });
+  }
+  loadingTexts = [];
+};
+
+/**
+ * Adds a new howl to a group.
+ * @param {string} groupName
+ * The name of the group to add the howl to.
+ * @param {...string} src
+ * List of sources to retrieve audio data from. The first source is the
+ * identifier for this audio track.
+ */
+macros.addSoundGroup = {
+  handler: function (place, macroName, params) {
+    var groupName = params[0];
+    var newHowl = new Howl({
+      src: params.slice(1),
+      loop: true,
+      volume: 0,
+    });
+
+    if (!soundGroups[groupName]) soundGroups[groupName] = {};
+    soundGroups[groupName][params[1]] = newHowl;
+
+    newHowl.once("load", function () {
+      if (
+        Object.values(soundGroups[groupName])
+          .filter(function (howl) {
+            return !!howl.loaded;
+          })
+          .every(function (howl) {
+            return howl.loaded() === "loaded";
+          })
+      ) {
+        soundGroups[groupName].loaded = true;
+      }
+    });
+  },
+};
+
+/**
+ * Adds a new howl to the default group. Calls addSoundGroup with the name of
+ * the default group appended to the parameter array.
+ * @param {...string} src
+ * List of sources to retrieve audio data from.
+ */
+macros.addSound = {
+  handler: function (place, macroName, params) {
+    var newParams = Array.from(params);
+    newParams.unshift(DEFAULT_GROUP_NAME);
+    macros.addSoundGroup.handler(place, macroName, newParams);
+  },
+};
+
+/**
+ * Plays all howls in a group.
+ * @param {string} [groupName]
+ * Name of the group to play. If not provided, uses the default group.
+ */
+macros.loopAllSilently = {
+  handler: function (place, macroName, params) {
+    var groupName = params[0] || DEFAULT_GROUP_NAME;
+    Object.values(soundGroups[groupName])
+      .filter(function (howl) {
+        return !!howl.play;
+      })
+      .forEach(function (howl) {
+        howl.play();
+      });
+  },
+};
+
+/**
+ * Fades in a howl over 1 second.
+ * @param {string} src
+ * Name of the howl to fade in. Uses the name of the first source when added to group.
+ * @param {string} [groupName]
+ * Name of the group to search for the howl. If not provided, uses the default group.
+ */
+macros.fadeInSound = {
+  handler: function (place, macroName, params) {
+    var groupName = params[1] || DEFAULT_GROUP_NAME;
+    soundGroups[groupName][params[0]].fade(0, 1, 1000);
+  },
+};
+
+/**
+ * Fades out a howl over 1 second.
+ * @param {string} src
+ * Name of the howl to fade out. Uses the name of the first source when added to group.
+ * @param {string} [groupName]
+ * Name of the group to search for the howl. If not provided, uses the default group.
+ */
+macros.fadeOutSound = {
+  handler: function (place, macroName, params) {
+    var groupName = params[1] || DEFAULT_GROUP_NAME;
+
+    var currentHowl = soundGroups[groupName][params[0]];
+    var volume = currentHowl.volume()
+    if (volume > 0) {
+      currentHowl.fade(volume, 0, 1000);
+    }
+  },
+};
+
+var sounds = {};
+macros.playSound = {
+  handler: function (place, macroName, params) {
+    sounds[params[0]] = new Howl({
+      src: params,
+      loop: false,
+      volume: 1,
+    });
+    sounds[params[0]].play();
+  },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
